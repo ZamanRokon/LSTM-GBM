@@ -98,6 +98,7 @@ import os
 import json
 import time
 import warnings
+from pathlib import Path
 import numpy as np
 import pandas as pd
 import matplotlib
@@ -114,9 +115,10 @@ warnings.filterwarnings("ignore")
 # ══════════════════════════════════════════════════════════════════════════════
 #  PATHS  ← edit if your paths differ
 # ══════════════════════════════════════════════════════════════════════════════
-ERA5_CSV = r"/mnt/d/LSTM/bhairab_bazar/ERA5_Meghna_All.csv"
-WL_CSV   = r"/mnt/d/LSTM/bhairab_bazar/WL_SW273_daily.csv"
-OUT_DIR  = r"/mnt/d/LSTM/bhairab_bazar/outputs"
+BASIN_DIR = Path(__file__).resolve().parent
+ERA5_CSV = BASIN_DIR / "ERA5_Meghna_All.csv"
+WL_CSV   = BASIN_DIR / "WL_SW273_daily.csv"
+OUT_DIR  = BASIN_DIR / "model"
 
 # ══════════════════════════════════════════════════════════════════════════════
 #  HYPERPARAMETERS
@@ -938,9 +940,9 @@ def main():
 ║  fc = run_hres_forecast(                                     ║
 ║      hres_df    = hres_df,                                   ║
 ║      history_df = history_df,                                ║
-║      model_dir  = r"/mnt/d/Jamuna_LSTM/outputs",             ║
-║      norm_path  = r".../outputs/normalizer_stats.json",      ║
-║      feat_path  = r".../outputs/feature_cols.json",          ║
+║      model_dir  = r"/mnt/d/Jamuna_LSTM/model",               ║
+║      norm_path  = r".../model/normalizer_stats.json",        ║
+║      feat_path  = r".../model/feature_cols.json",            ║
 ║      n_features = 24,                                        ║
 ║  )                                                           ║
 ║                                                              ║

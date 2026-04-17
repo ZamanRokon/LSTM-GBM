@@ -4,13 +4,13 @@ LSTM Water Level Prediction - Multi-Basin Forecasting
 Generates 15-day forecasts for all (or specified) basins using trained LSTM models and HRES data.
 
 Usage:
-    python lstm_prediction.py 20250601              # Process all basins
-    python lstm_prediction.py 20250601 bahadurabaad muhuri  # Process specific basins
+    python scripts/lstm_prediction.py 20250601              # Process all basins
+    python scripts/lstm_prediction.py 20250601 bahadurabaad muhuri  # Process specific basins
 
 Input:
     - HRES forecast data: basins/{basin}/input/hres_{basin}_{date}.csv
-    - Trained models: basins/{basin}/outputs/best_model_*.pt
-    - Normalizer: basins/{basin}/outputs/normalizer_stats.json
+    - Trained models: basins/{basin}/model/best_model_*.pt
+    - Normalizer: basins/{basin}/model/normalizer_stats.json
     - Historical WL: updated_WL_data/WL_{basin}_daily.csv
 
 Output:
@@ -31,6 +31,8 @@ import torch
 import torch.nn as nn
 
 warnings.filterwarnings("ignore")
+
+REPO_ROOT = Path(__file__).resolve().parent.parent
 
 # ══════════════════════════════════════════════════════════════════════════════
 # CONFIGURATION
@@ -266,7 +268,7 @@ def run_hres_forecast(hres_df, history_df, model_dir, norm, n_features,
 # PROCESS BASIN
 # ══════════════════════════════════════════════════════════════════════════════
 
-def process_basin(basin_name, date_str, lstm_dir):
+def process_basin(basin_name, date_str, repo_root):
     """Process a single basin."""
     
     try:
@@ -275,7 +277,7 @@ def process_basin(basin_name, date_str, lstm_dir):
         print(f"❌ Invalid date format: {date_str}. Use YYYYMMDD")
         return False
 
-    basin_dir = lstm_dir / "basins" / basin_name
+    basin_dir = repo_root / "basins" / basin_name
     
     if not basin_dir.exists():
         print(f"❌ Basin directory not found: {basin_dir}")
@@ -289,9 +291,9 @@ def process_basin(basin_name, date_str, lstm_dir):
     # Setup paths
     input_dir = basin_dir / "input"
     output_dir = basin_dir / "output"
-    model_dir = basin_dir / "outputs"
+    model_dir = basin_dir / "model"
     norm_path = model_dir / "normalizer_stats.json"
-    wl_data_dir = lstm_dir / "updated_WL_data"
+    wl_data_dir = repo_root / "updated_WL_data"
 
     # Validate directories
     for d in [input_dir, model_dir, output_dir]:
@@ -450,8 +452,7 @@ def main():
                        help="Basin names (if empty, process all basins)")
     args = parser.parse_args()
 
-    lstm_dir = Path(__file__).parent
-    basins_dir = lstm_dir / "basins"
+    basins_dir = REPO_ROOT / "basins"
 
     if not basins_dir.exists():
         print(f"❌ Basins directory not found: {basins_dir}")
@@ -479,7 +480,7 @@ def main():
     # Process each basin
     results = {}
     for basin in basins_to_process:
-        success = process_basin(basin, args.date, lstm_dir)
+        success = process_basin(basin, args.date, REPO_ROOT)
         results[basin] = "✓ Success" if success else "✗ Failed"
 
     # Summary

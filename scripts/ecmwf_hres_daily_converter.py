@@ -33,6 +33,8 @@ import xarray as xr
 
 warnings.filterwarnings("ignore")
 
+REPO_ROOT = Path(__file__).resolve().parent.parent
+
 # ──────────────────────────────────────────────────────────────────────────────
 # Configuration
 # ──────────────────────────────────────────────────────────────────────────────
@@ -223,14 +225,14 @@ def convert(input_path: Path, output_path: Path):
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:
-        print("Usage: python ecmwf_hres_daily_converter.py <YYYYMMDD> [output.nc]")
-        print("Example: python ecmwf_hres_daily_converter.py 20250615")
+        print("Usage: python scripts/ecmwf_hres_daily_converter.py <YYYYMMDD> [output.nc]")
+        print("Example: python scripts/ecmwf_hres_daily_converter.py 20250615")
         sys.exit(1)
 
     date_arg = sys.argv[1]
     
     # Construct input path from date
-    hres_data_dir = Path(__file__).parent / "hres_data"
+    hres_data_dir = REPO_ROOT / "hres_data"
     input_path = hres_data_dir / f"tmp_{date_arg}.nc"
     
     if not input_path.exists():

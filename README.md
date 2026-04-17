@@ -7,7 +7,10 @@ Operational LSTM-based water-level forecasting workflow for multiple Bangladesh 
 - Observed water-level updates from BWDB and FFWC
 - Basin-specific trained LSTM ensembles
 
-The repository currently works as a script-driven production pipeline rather than the older modular layout described in the original draft documentation.
+The repository is organized to keep the project root cleaner:
+
+- reusable operational entry-point scripts live in `scripts/`
+- basin-specific trained artifacts live in `basins/<basin>/model/`
 
 ## What This Project Does
 
@@ -34,16 +37,18 @@ LSTM/
 │   ├── Global prediction of extreme floods.pdf
 │   └── lstm_hyperparameter_manual.docx
 ├── hres_data/                     # downloaded + processed ECMWF HRES NetCDFs
+├── scripts/
+│   ├── ecmwf_hres_downloader.py
+│   ├── ecmwf_hres_daily_converter.py
+│   ├── ecmwf_hres_wavg.py
+│   ├── update_WL.py
+│   ├── lstm_prediction.py
+│   └── run_hres.sh
 ├── updated_WL_data/               # merged station-wise daily observed WL CSVs
-├── ecmwf_hres_downloader.py       # Step 1: download HRES slices and build merged NetCDF
-├── ecmwf_hres_daily_converter.py  # Step 2: convert sub-daily HRES to daily NetCDF
-├── ecmwf_hres_wavg.py             # Step 3: basin-weighted daily forcing CSVs
-├── update_WL.py                   # Step 4: update observed WL from BWDB + FFWC
-├── lstm_prediction.py             # Step 5: multi-basin 15-day forecast inference
 ├── ecmwf_variables.csv            # variable metadata and unit conversion info
 ├── lstm.ipynb                     # notebook experimentation / prototyping
 ├── requirements.txt
-└── run_hres.sh                    # helper script for HRES preprocessing sequence
+└── README.md
 ```
 
 ## Basin Folder Layout
@@ -55,7 +60,7 @@ basins/<basin_name>/
 ├── basin_<basin_name>.json        # basin geometry used for weighted averaging
 ├── input/                         # HRES basin-forcing CSVs by forecast date
 ├── output/                        # final forecast CSVs by forecast date
-├── outputs/                       # trained model artifacts
+├── model/                         # trained model artifacts
 │   ├── best_model_0.pt
 │   ├── best_model_1.pt
 │   ├── best_model_2.pt
@@ -70,7 +75,9 @@ basins/<basin_name>/
 
 ## Main Scripts
 
-### `ecmwf_hres_downloader.py`
+All operational entry points are under `scripts/`.
+
+### `scripts/ecmwf_hres_downloader.py`
 
 - Downloads ECMWF open-data HRES GRIB slices by variable and timestep.
 - Crops to a regional bounding box.
@@ -85,14 +92,14 @@ Default variables:
 - `str`
 - `sp`
 
-### `ecmwf_hres_daily_converter.py`
+### `scripts/ecmwf_hres_daily_converter.py`
 
 - Reads merged sub-daily HRES NetCDF.
 - Converts instantaneous variables (`t2m`, `d2m`, `sp`) to daily means.
 - De-accumulates accumulated variables (`tp`, `ssr`, `str`) and aggregates to daily sums.
 - Writes `hres_data/daily_<YYYYMMDD>.nc`.
 
-### `ecmwf_hres_wavg.py`
+### `scripts/ecmwf_hres_wavg.py`
 
 - Reads the daily HRES NetCDF.
 - Discovers basin polygons under `basins/`.
@@ -100,7 +107,7 @@ Default variables:
 - Writes one forcing CSV per basin to:
   - `basins/<basin>/input/hres_<basin>_<YYYYMMDD>.csv`
 
-### `update_WL.py`
+### `scripts/update_WL.py`
 
 - Updates station-wise daily observed water-level CSVs in `updated_WL_data/`.
 - Uses BWDB as the primary source.
@@ -110,16 +117,24 @@ Default variables:
   - otherwise `12:00`
   - otherwise `06:00`
 
-### `lstm_prediction.py`
+### `scripts/lstm_prediction.py`
 
 - Runs 15-day water-level inference for all basins or selected basins.
 - Loads:
   - basin-specific HRES forcing CSV
   - observed recent water levels
-  - saved model weights
-  - saved normalizer statistics
+  - saved model weights from `basins/<basin>/model/`
+  - saved normalizer statistics from `basins/<basin>/model/`
 - Produces:
   - `basins/<basin>/output/forecast_<YYYYMMDD>.csv`
+
+### `scripts/run_hres.sh`
+
+- Linux helper that runs the HRES preprocessing sequence from the repo root.
+- Calls:
+  - `scripts/ecmwf_hres_downloader.py`
+  - `scripts/ecmwf_hres_daily_converter.py`
+  - `scripts/ecmwf_hres_wavg.py`
 
 ## Modeling Approach
 
@@ -127,15 +142,15 @@ The original project notes referenced an encoder-decoder LSTM inspired by Nearin
 
 Core characteristics of the current implementation:
 
-- Hindcast window: 90 days
+- Hindcast window: 90 days for the large-river setups, with basin-specific variants for smaller flashy basins
 - Model type: single-step LSTM with autoregressive rollout during forecast
 - Ensemble size: typically 3 models per basin
-- Hidden size: typically 128
-- Inputs: 24 engineered features
+- Hidden size: typically 128 for the larger basins, with basin-specific adjustments
+- Inputs: engineered meteorological, hydrological, and seasonal features
 
 ### Feature Groups
 
-The forecast model uses a combination of:
+The forecast models use a combination of:
 
 - Raw meteorological forcings:
   - `tp`
@@ -143,19 +158,12 @@ The forecast model uses a combination of:
   - `ssr`
   - `str`
   - `sp`
-- Rolling precipitation windows:
-  - 3, 7, 14, 30, 60 days
-- Rolling temperature windows:
-  - 7, 14, 30 days
-- Interaction term:
-  - precipitation × temperature
-- Water-level lag features:
-  - 1, 2, 3, 7, 14 days
-- Water-level anomaly:
-  - 30-day anomaly
-- Seasonal encodings:
-  - day-of-year sine/cosine
-  - month sine/cosine
+- Rolling precipitation windows
+- Rolling temperature windows
+- Interaction terms
+- Water-level lag features
+- Water-level anomaly features
+- Seasonal encodings
 
 This setup is designed to capture routing memory, delayed runoff response, and strong autoregressive persistence in river stage.
 
@@ -163,19 +171,19 @@ This setup is designed to capture routing memory, delayed runoff response, and s
 
 ```text
 ECMWF Open Data
-  -> ecmwf_hres_downloader.py
+  -> scripts/ecmwf_hres_downloader.py
   -> hres_data/tmp_<date>.nc
-  -> ecmwf_hres_daily_converter.py
+  -> scripts/ecmwf_hres_daily_converter.py
   -> hres_data/daily_<date>.nc
-  -> ecmwf_hres_wavg.py
+  -> scripts/ecmwf_hres_wavg.py
   -> basins/<basin>/input/hres_<basin>_<date>.csv
 
 BWDB + FFWC APIs
-  -> update_WL.py
+  -> scripts/update_WL.py
   -> updated_WL_data/WL_<station>_daily.csv
 
 Basin model artifacts + latest HRES input + updated observed WL
-  -> lstm_prediction.py
+  -> scripts/lstm_prediction.py
   -> basins/<basin>/output/forecast_<date>.csv
 ```
 
@@ -187,37 +195,37 @@ Basin model artifacts + latest HRES input + updated observed WL
 pip install -r requirements.txt
 ```
 
-Note: the weighted-averaging script also depends on packages used in code but not explicitly listed in `requirements.txt`, including:
+Note: the weighted-averaging script also depends on packages used in code but not explicitly listed in older versions of `requirements.txt`, especially:
 
 - `fiona`
 - `pyscissor`
-
-You may need to install them manually depending on your environment.
+- `cfgrib`
+- `requests`
 
 ### 2. Download and preprocess HRES for a forecast date
 
 ```bash
-python ecmwf_hres_downloader.py 20250615
-python ecmwf_hres_daily_converter.py 20250615
-python ecmwf_hres_wavg.py 20250615
+python scripts/ecmwf_hres_downloader.py 20250615
+python scripts/ecmwf_hres_daily_converter.py 20250615
+python scripts/ecmwf_hres_wavg.py 20250615
 ```
 
 Or use the helper shell script on Linux environments:
 
 ```bash
-./run_hres.sh 20250615
+./scripts/run_hres.sh 20250615
 ```
 
 ### 3. Update observed water levels
 
 ```bash
-python update_WL.py 20250615
+python scripts/update_WL.py 20250615
 ```
 
 Optional single-station update:
 
 ```bash
-python update_WL.py 20250615 bahadurabaad
+python scripts/update_WL.py 20250615 bahadurabaad
 ```
 
 ### 4. Run forecasts
@@ -225,13 +233,13 @@ python update_WL.py 20250615 bahadurabaad
 Run all discovered basins:
 
 ```bash
-python lstm_prediction.py 20250615
+python scripts/lstm_prediction.py 20250615
 ```
 
 Run selected basins only:
 
 ```bash
-python lstm_prediction.py 20250615 bahadurabaad hardinge muhuri
+python scripts/lstm_prediction.py 20250615 bahadurabaad hardinge muhuri
 ```
 
 ## Inputs and Outputs
@@ -243,9 +251,9 @@ For each basin forecast run, the pipeline expects:
 - Basin HRES forcing:
   - `basins/<basin>/input/hres_<basin>_<YYYYMMDD>.csv`
 - Trained model weights:
-  - `basins/<basin>/outputs/best_model_*.pt`
+  - `basins/<basin>/model/best_model_*.pt`
 - Normalizer:
-  - `basins/<basin>/outputs/normalizer_stats.json`
+  - `basins/<basin>/model/normalizer_stats.json`
 - Observed water level:
   - `updated_WL_data/WL_<basin>_daily.csv`
 
@@ -267,10 +275,11 @@ basins/<basin>/output/forecast_<YYYYMMDD>.csv
 
 ## Training Assets
 
-Training is currently basin-specific rather than centralized in a shared `training/` module. Basin scripts such as:
+Training remains basin-specific rather than centralized in a shared module. Basin scripts such as:
 
 - `basins/bahadurabaad/jamuna_lstm.py`
 - `basins/hardinge/ganges_lstm.py`
+- `basins/muhuri/muhuri_lstm.py`
 
 handle:
 
@@ -282,7 +291,7 @@ handle:
 - ensemble export
 - diagnostic plot generation
 
-Typical training outputs written under `basins/<basin>/outputs/`:
+Typical training outputs written under `basins/<basin>/model/`:
 
 - `best_model_0.pt`, `best_model_1.pt`, `best_model_2.pt`
 - `normalizer_stats.json`
@@ -292,7 +301,7 @@ Typical training outputs written under `basins/<basin>/outputs/`:
 
 ## Known Notes
 
-- The README previously described a cleaner modular architecture than the current repository actually uses; this version reflects the current codebase.
+- The repo root now keeps operational scripts under `scripts/` to reduce clutter.
 - Basin naming is not perfectly uniform across scripts and folders, so some station/basin mappings are handled with fallbacks.
 - The forecast pipeline is operational and produces outputs, but forecast quality should still be checked basin by basin.
 - Some sample forecast CSVs in the repo are nearly constant across all 15 lead days, which is worth validating during model QA.

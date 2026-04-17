@@ -6,8 +6,11 @@ import os
 import sys
 import requests
 import pandas as pd
+from pathlib import Path
 from datetime import datetime, timedelta
 from collections import defaultdict
+
+REPO_ROOT = Path(__file__).resolve().parent.parent
 
 # Station map (BWDB Station ID)
 STATIONS = {
@@ -247,7 +250,7 @@ def main():
         if station_filter and name.lower() != station_filter.lower():
             continue
 
-        out_file = f"./updated_WL_data/WL_{name}_daily.csv"
+        out_file = REPO_ROOT / "updated_WL_data" / f"WL_{name}_daily.csv"
         df_old = read_existing_csv(out_file)
 
         # last known daily date from existing CSV index

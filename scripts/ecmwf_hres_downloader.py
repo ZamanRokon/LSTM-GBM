@@ -21,6 +21,8 @@ import warnings
 
 warnings.filterwarnings('ignore')
 
+REPO_ROOT = Path(__file__).resolve().parent.parent
+
 
 class ECMWFDownloader:
     def __init__(self, date_str, variables, lon_range=(70, 100), lat_range=(20, 35)):
@@ -45,7 +47,7 @@ class ECMWFDownloader:
         self.base_url = f"https://storage.googleapis.com/ecmwf-open-data/{self.date}/{self.time}/ifs/0p25/oper"
         
         # Setup directories
-        self.main_dir = Path("hres_data")
+        self.main_dir = REPO_ROOT / "hres_data"
         self.index_dir = self.main_dir / "index_files"
         self.tmp_dir = self.main_dir / "tmp"
         self.out_dir = self.main_dir
@@ -68,7 +70,7 @@ class ECMWFDownloader:
     def _load_var_metadata(self):
         """Load variable metadata from CSV."""
         metadata = {}
-        csv_path = Path(__file__).parent / "ecmwf_variables.csv"
+        csv_path = REPO_ROOT / "ecmwf_variables.csv"
         
         if csv_path.exists():
             df = pd.read_csv(csv_path)
@@ -490,9 +492,9 @@ class ECMWFDownloader:
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:
-        print("Usage: python ecmwf_hres_downloader.py <YYYYMMDD> [VAR1 VAR2 ...]")
-        print("Example: python ecmwf_hres_downloader.py 20250615")
-        print("         python ecmwf_hres_downloader.py 20250615 tp 2t msl")
+        print("Usage: python scripts/ecmwf_hres_downloader.py <YYYYMMDD> [VAR1 VAR2 ...]")
+        print("Example: python scripts/ecmwf_hres_downloader.py 20250615")
+        print("         python scripts/ecmwf_hres_downloader.py 20250615 tp 2t msl")
         sys.exit(1)
     
     date = sys.argv[1]

@@ -35,12 +35,14 @@ from pyscissor import scissor
 
 warnings.filterwarnings("ignore")
 
+REPO_ROOT = Path(__file__).resolve().parent.parent
+
 # ──────────────────────────────────────────────────────────────────────────────
 # Configuration
 # ──────────────────────────────────────────────────────────────────────────────
 
-BASINS_DIR   = Path("basins")
-HRES_DIR     = Path("hres_data")
+BASINS_DIR   = REPO_ROOT / "basins"
+HRES_DIR     = REPO_ROOT / "hres_data"
 
 # Variables to extract — in desired CSV column order
 VAR_COLUMNS  = ["d2m", "t2m", "ssr", "str", "tp", "sp"]
@@ -211,8 +213,8 @@ def main(date_str: str):
 
 if __name__ == "__main__":
     if len(sys.argv) != 2:
-        print("Usage: python ecmwf_hres_wavg.py <YYYYMMDD>")
-        print("Example: python ecmwf_hres_wavg.py 20250615")
+        print("Usage: python scripts/ecmwf_hres_wavg.py <YYYYMMDD>")
+        print("Example: python scripts/ecmwf_hres_wavg.py 20250615")
         sys.exit(1)
 
     date_arg = sys.argv[1]
