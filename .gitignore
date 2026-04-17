@@ -1,0 +1,32 @@
+# Python bytecode and caches
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Notebook and virtual environment noise
+.ipynb_checkpoints/
+.venv/
+venv/
+env/
+ENV/
+
+# OS/editor files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Local test and coverage artifacts
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Large raw and generated forecast datasets
+BWDB_WL_Data/
+hres_data/
+*.grib2
+*.nc
+
+# Local runtime logs
+*.log

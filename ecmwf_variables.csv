@@ -1,0 +1,10 @@
+shortName,long_name,paramId,unit,levtype,aggregation_rule,conversion_factor
+2t,2 metre temperature,167,K,sfc,Instantaneous,1
+2d,2 metre dewpoint temperature,168,K,sfc,Instantaneous,1
+sp,Surface pressure,134,Pa,sfc,Instantaneous,1
+tp,Total precipitation,228,mm,sfc,Accumulation,1000
+ssr,Surface net solar radiation,176,J m-2,sfc,Accumulation,1
+str,Surface net thermal radiation,177,J m-2,sfc,Accumulation,1
+tcwv,Total column vertically-integrated water vapour,137,kg m-2,sfc,Instantaneous column amount,1
+tcw,Total column water,136,kg m-2,sfc,Instantaneous column amount,1
+msl,Mean sea level pressure,151,Pa,sfc,Instantaneous,1

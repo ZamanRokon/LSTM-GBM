@@ -1,0 +1,28 @@
+{
+  "feature_cols": [
+    "tp",
+    "t2m",
+    "ssr",
+    "str",
+    "sp",
+    "tp_roll3",
+    "tp_roll7",
+    "tp_roll14",
+    "tp_roll30",
+    "tp_roll60",
+    "t2m_roll7",
+    "t2m_roll14",
+    "t2m_roll30",
+    "tp_x_t2m",
+    "wl_lag1",
+    "wl_lag2",
+    "wl_lag3",
+    "wl_lag7",
+    "wl_lag14",
+    "wl_anom_30d",
+    "doy_sin",
+    "doy_cos",
+    "month_sin",
+    "month_cos"
+  ]
+}
